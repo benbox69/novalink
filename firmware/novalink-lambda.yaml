@@ -1,0 +1,253 @@
+# NovaLink V1 - ESPHome firmware, standalone version (lambdas, no external component)
+#
+# ESP32-C3 SuperMini <-> CA-IS3721HS isolator <-> stove NAVEL INSIDE port (+5V, SER, GND).
+# TX = GPIO5, RX = GPIO20, 19200 baud, no inversion. Single-wire line: the board receives its own bytes,
+# the echo is skipped before the stove reply is decoded.
+#
+# The Micronova protocol is handled by the lambdas below, without the ESPHome micronova component
+# (which only accepts 1200 baud 8N2 up to now). This logic ran on a breadboard prototype connected to
+# a Micronova X100 EVO from 2026-11-14; only the pins and the inversion were changed for NovaLink.
+#
+# Addresses checked on a Micronova X100 EVO board. Never write to RAM 0x58 on this board
+# (it raises the "fumes probe" alarm): the write path below refuses it.
+
+substitutions:
+  name: novalink
+  friendly_name: NovaLink
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+esp32:
+  board: esp32-c3-devkitm-1
+  framework:
+    type: esp-idf
+
+logger:
+  hardware_uart: USB_SERIAL_JTAG   # keeps both hardware UARTs free
+
+api:
+  encryption:
+    key: !secret novalink_api_key
+
+ota:
+  - platform: esphome
+    password: !secret ota_password
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+  ap:
+    ssid: "${friendly_name} Fallback"
+    password: !secret fallback_password
+
+captive_portal:
+
+status_led:
+  pin: GPIO10   # LED1, active high
+
+uart:
+  id: stove_uart
+  tx_pin: GPIO5
+  rx_pin: GPIO20
+  baud_rate: 19200   # NAVEL INSIDE port
+  data_bits: 8
+  parity: NONE
+  stop_bits: 1
+
+globals:
+  - id: pending_write
+    type: bool
+    initial_value: "false"
+  - id: pending_loc
+    type: uint8_t
+    initial_value: "0"
+  - id: pending_addr
+    type: uint8_t
+    initial_value: "0"
+  - id: pending_val
+    type: uint8_t
+    initial_value: "0"
+  - id: last_eeprom_write
+    type: uint32_t
+    initial_value: "0"
+
+interval:
+  - interval: 150ms
+    then:
+      - lambda: |-
+          // Reads: {location, address}. Indexes 8..23 = text shown on the stove display (RAM 0x88-0x97).
+          static const uint8_t RD[][2] = {
+            {0x00, 0x01}, {0x00, 0x59}, {0x00, 0x21}, {0x00, 0x34},
+            {0x00, 0x37}, {0x00, 0x32}, {0x20, 0x7D}, {0x20, 0x7F}};
+          static const int N_MAIN = 8, N_TXT = 16;
+          static int idx = 0;
+          static bool waiting = false, was_write = false;
+          static uint8_t cur_loc = 0, cur_addr = 0;
+          static uint8_t buf[16];
+          static char txt[N_TXT + 1] = {0};
+          static uint32_t sent_at = 0;
+          auto *u = id(stove_uart);
+
+          if (waiting) {
+            if (millis() - sent_at < 100) return;      // leave time for the reply
+            int n = 0;
+            while (u->available() && n < 16) u->read_byte(&buf[n++]);
+            while (u->available()) { uint8_t t; u->read_byte(&t); }
+            waiting = false;
+            if (was_write) { was_write = false; return; }
+            // Skip the echo (the 2 bytes sent), then look for "checksum, value"
+            int start = (n >= 2 && buf[0] == cur_loc && buf[1] == cur_addr) ? 2 : 0;
+            int val = -1;
+            for (int i = start; i + 1 < n; i++) {
+              if (buf[i] == (uint8_t)(cur_loc + cur_addr + buf[i + 1])) { val = buf[i + 1]; break; }
+            }
+            if (val < 0) return;
+            if (idx < N_MAIN) {
+              switch (idx) {
+                case 0: id(room_temperature).publish_state(val / 2.0f); break;
+                case 1: id(fumes_temperature).publish_state(val); break;
+                case 2: {
+                  id(stove_state_code).publish_state(val);
+                  static const char *names[] = {"Off", "Start", "Pellets loading", "Ignition", "Working",
+                    "Brazier cleaning", "Final cleaning", "Standby", "Alarm", "Ignition failed"};
+                  id(stove_state).publish_state(val < 10 ? std::string(names[val]) : ("Unknown " + to_string(val)));
+                  break;
+                }
+                case 3: id(stove_power).publish_state(val); break;
+                case 4: id(fumes_fan_raw).publish_state(val); break;
+                case 5: id(brazier_cleaning_in).publish_state(val); break;
+                case 6: id(thermostat_setpoint).publish_state(val); break;
+                case 7: id(power_level).publish_state(val); break;
+              }
+            } else {
+              int k = idx - N_MAIN;
+              txt[k] = (val >= 32 && val < 127) ? (char) val : ' ';
+              if (k == N_TXT - 1) {
+                std::string s(txt);
+                while (!s.empty() && s.back() == ' ') s.pop_back();
+                id(stove_display).publish_state(s);
+              }
+            }
+            idx = (idx + 1) % (N_MAIN + N_TXT);
+            return;
+          }
+
+          // A pending write goes first
+          while (u->available()) { uint8_t t; u->read_byte(&t); }
+          if (id(pending_write)) {
+            uint8_t loc = id(pending_loc), a = id(pending_addr), v = id(pending_val);
+            if (loc == 0x80 && a == 0x58) { id(pending_write) = false; return; }  // safety guard
+            uint8_t fr[4] = {loc, a, v, (uint8_t)(loc + a + v)};
+            u->write_array(fr, 4);
+            u->flush();
+            ESP_LOGI("stove", "Write %02X %02X %02X %02X", fr[0], fr[1], fr[2], fr[3]);
+            id(pending_write) = false;
+            was_write = true;
+            if (loc == 0xA0) id(last_eeprom_write) = millis();
+          } else {
+            if (idx < N_MAIN) { cur_loc = RD[idx][0]; cur_addr = RD[idx][1]; }
+            else { cur_loc = 0x00; cur_addr = 0x88 + (idx - N_MAIN); }
+            uint8_t fr[2] = {cur_loc, cur_addr};
+            u->write_array(fr, 2);
+            u->flush();
+          }
+          sent_at = millis();
+          waiting = true;
+
+sensor:
+  - platform: template
+    id: room_temperature
+    name: "Room temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 1
+  - platform: template
+    id: fumes_temperature
+    name: "Fumes temperature"
+    unit_of_measurement: "°C"
+    device_class: temperature
+    state_class: measurement
+    accuracy_decimals: 0
+  - platform: template
+    id: stove_state_code
+    name: "Stove state (code)"
+    accuracy_decimals: 0
+  - platform: template
+    id: stove_power
+    name: "Stove power"
+    accuracy_decimals: 0
+  - platform: template
+    id: fumes_fan_raw
+    name: "Fumes fan (raw)"
+    accuracy_decimals: 0
+  - platform: template
+    id: brazier_cleaning_in
+    name: "Brazier cleaning in"
+    unit_of_measurement: "min"
+    accuracy_decimals: 0
+
+text_sensor:
+  - platform: template
+    id: stove_state
+    name: "Stove state"
+  - platform: template
+    id: stove_display
+    name: "Stove display"
+
+number:
+  - platform: template
+    id: thermostat_setpoint
+    name: "Thermostat setpoint"
+    unit_of_measurement: "°C"
+    min_value: 6
+    max_value: 40
+    step: 1
+    optimistic: true
+    set_action:
+      - lambda: |-
+          if (!isnan(id(thermostat_setpoint).state) && (int) x == (int) id(thermostat_setpoint).state) return;
+          if (id(last_eeprom_write) != 0 && millis() - id(last_eeprom_write) < 5000) {
+            ESP_LOGW("stove", "EEPROM write refused: less than 5 s since the previous one"); return; }
+          id(pending_loc) = 0xA0; id(pending_addr) = 0x7D;
+          id(pending_val) = (uint8_t) x; id(pending_write) = true;
+  - platform: template
+    id: power_level
+    name: "Power level"
+    min_value: 1
+    max_value: 5
+    step: 1
+    optimistic: true
+    set_action:
+      - lambda: |-
+          if (!isnan(id(power_level).state) && (int) x == (int) id(power_level).state) return;
+          if (id(last_eeprom_write) != 0 && millis() - id(last_eeprom_write) < 5000) {
+            ESP_LOGW("stove", "EEPROM write refused: less than 5 s since the previous one"); return; }
+          id(pending_loc) = 0xA0; id(pending_addr) = 0x7F;
+          id(pending_val) = (uint8_t) x; id(pending_write) = true;
+
+switch:
+  - platform: template
+    id: stove_switch
+    name: "Stove on/off"
+    icon: "mdi:fire"
+    lambda: |-
+      float e = id(stove_state_code).state;
+      if (isnan(e)) return {};
+      int s = (int) e;
+      return (s >= 1 && s <= 5) || s == 7;
+    turn_on_action:
+      - lambda: |-
+          if ((int) id(stove_state_code).state != 0) {
+            ESP_LOGW("stove", "Start refused: the stove is not off (state %d)", (int) id(stove_state_code).state); return; }
+          id(pending_loc) = 0x80; id(pending_addr) = 0x21;
+          id(pending_val) = 0x01; id(pending_write) = true;
+    turn_off_action:
+      - lambda: |-
+          int s = (int) id(stove_state_code).state;
+          if (!((s >= 1 && s <= 5) || s == 7)) {
+            ESP_LOGW("stove", "Stop refused: the stove is not running (state %d)", s); return; }
+          id(pending_loc) = 0x80; id(pending_addr) = 0x21;
+          id(pending_val) = 0x06; id(pending_write) = true;   // 6 = final cleaning = normal stop

@@ -51,6 +51,7 @@ An optional VL53L0X time-of-flight sensor can be connected (for example to measu
 | `production/` | Manufacturing files: `NovaLink.zip` (Gerbers + drill), `bom.csv`, `positions.csv` |
 | `docs/` | Schematic PDF, PCB renders, board STEP |
 | `enclosure/` | Enclosure: `NovaLink_enclosure_base.stl`, `NovaLink_enclosure_lid.stl`, `NovaLink_enclosure.step` |
+| `firmware/` | ESPHome configurations: `novalink.yaml` (micronova component fork), `novalink-lambda.yaml` (standalone) |
 
 ## Schematic
 
@@ -107,20 +108,68 @@ Ready-to-print files: `enclosure/NovaLink_enclosure_base.stl` and `enclosure/Nov
 
 ## Firmware
 
-🚧 **Work in progress** — the firmware (ESPHome) is not written yet.
+Two ESPHome configurations are available in `firmware/`. Both compile with ESPHome 2026.10.2, use the same pins and
+the same Home Assistant API. Pick one:
 
-The hardware side is fixed: with ESPHome the serial port will be:
+| | `novalink.yaml` | `novalink-lambda.yaml` |
+|---|---|---|
+| Protocol handled by | ESPHome `micronova` component, from a fork | Lambdas in the YAML file, no external component |
+| Status | Validated on a breadboard prototype (reads and setpoint write) | Logic running on a breadboard prototype since 2026-11-14 |
+| Entities | Room and fumes temperature, stove state, power, fan speed, setpoint, power level, on/off switch | Same, plus raw fan speed, minutes before brazier cleaning and the text shown on the stove display |
+| Safety | Standard component behaviour | Refuses writes to RAM 0x58, at most one EEPROM write every 5 s, on/off only from a matching state |
+| Best for | Following ESPHome and the upcoming pull request | A self-contained file with every detail visible and editable |
+
+Both files need a `secrets.yaml` with `wifi_ssid`, `wifi_password`, `novalink_api_key`, `ota_password` and
+`fallback_password`. Memory addresses were checked on a Micronova X100 EVO; other boards may use other addresses.
+
+> ⚠️ On the X100 EVO, never write to RAM address 0x58: it raises the "fumes probe" alarm. Do not add a custom button or
+> write action on that address.
+
+### Option 1: ESPHome micronova component (fork)
+
+The `micronova` component shipped with ESPHome only accepts 1200 baud 8N2 and needs an `enable_rx_pin`.
+The fork [benbox69/esphome](https://github.com/benbox69/esphome) adds what NovaLink needs, without changing existing
+configurations:
+
+- `enable_rx_pin` is optional;
+- any baud rate and stop bits (8 data bits, no parity), so the 19200 baud NAVEL INSIDE port works;
+- `echo: true` reads back and checks the bytes the board sends on the single-wire line before the stove reply.
 
 ```yaml
+external_components:
+  - source: github://benbox69/esphome@micronova-navel-2026.10
+    components: [micronova]
+
 uart:
   id: stove_uart
   tx_pin: GPIO5
   rx_pin: GPIO20
   baud_rate: 19200
+
+micronova:
+  uart_id: stove_uart
+  echo: true
 ```
 
-No pin inversion is needed (the isolator and the diode keep the logic levels).
-19200 baud is for the NAVEL INSIDE port; the SERIAL port usually uses 1200 baud, 8N2 (see Compatibility).
+Branch `micronova-navel-2026.10` matches ESPHome 2026.10.x. Branch `micronova-navel` follows the ESPHome `dev` branch
+and is the base of a pull request to ESPHome, planned once the boards have been tested.
+
+### Option 2: standalone firmware (lambdas)
+
+`novalink-lambda.yaml` handles the Micronova protocol itself in a few lambdas: one request every 150 ms, echo skipped,
+checksum verified, writes queued before reads. It needs nothing but ESPHome, and it also reads the 16-character text
+shown on the stove display.
+
+### Hardware notes
+
+No pin inversion is needed (the isolator and the diode keep the logic levels). The line is single-wire: the board
+always receives its own bytes, both configurations deal with it. 19200 baud is for the NAVEL INSIDE port; the SERIAL
+port usually uses 1200 baud, 8N2 (see Compatibility).
+
+### Planned: MQTT firmware
+
+A firmware publishing over MQTT is planned, so that NovaLink can be used with any home automation system, not only
+with ESPHome and Home Assistant.
 
 ## 3D model of the SuperMini
 
