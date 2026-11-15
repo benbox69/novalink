@@ -9,8 +9,9 @@ An optional VL53L0X time-of-flight sensor can be connected (for example to measu
 
 ![NovaLink 3D view](docs/pcb_3d.png)
 
-> ⚠️ **Status: not tested yet.** The first boards have not been built or connected to a stove; the firmware is a
-> work in progress. Use at your own risk.
+> ⚠️ **Status: board not tested yet.** The first boards have not been built or connected to a stove. Both firmware
+> versions run on a breadboard prototype connected to a Micronova X100 EVO (same protocol, same logic; only the pins
+> and the signal inversion differ). Use at your own risk.
 >
 > This is a hobby project, not affiliated with or endorsed by Micronova. Opening a stove and connecting to its
 > controller is at your own risk and may void the warranty.
@@ -114,7 +115,7 @@ the same Home Assistant API. Pick one:
 | | `novalink.yaml` | `novalink-lambda.yaml` |
 |---|---|---|
 | Protocol handled by | ESPHome `micronova` component, from a fork | Lambdas in the YAML file, no external component |
-| Status | Validated on a breadboard prototype (reads and setpoint write) | Logic running on a breadboard prototype since 2026-11-14 |
+| Status | Running on a breadboard prototype since 2026-11-15 | Ran on a breadboard prototype from 2026-11-14 to 2026-11-15 |
 | Entities | Room and fumes temperature, stove state, power, fan speed, setpoint, power level, on/off switch | Same, plus raw fan speed, minutes before brazier cleaning and the text shown on the stove display |
 | Safety | Standard component behaviour | Refuses writes to RAM 0x58, at most one EEPROM write every 5 s, on/off only from a matching state |
 | Best for | Following ESPHome and the upcoming pull request | A self-contained file with every detail visible and editable |
