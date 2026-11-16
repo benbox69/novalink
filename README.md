@@ -1,4 +1,4 @@
-# NovaLink V1
+# NovaLink V1.1
 
 **Galvanically isolated ESP32-C3 interface for Micronova-controlled pellet stoves (NAVEL INSIDE port).**
 
@@ -6,6 +6,10 @@ NovaLink plugs into the 3-pin service port of a Micronova stove board (designed 
 +5 V / SER / GND, 19200 baud single-wire serial) and lets an ESP32-C3 SuperMini talk to the stove through a
 3.75 kV digital isolator. The stove side is powered by the stove itself; the ESP side is powered by USB-C.
 An optional VL53L0X time-of-flight sensor can be connected (for example to measure the pellet level).
+
+**V1.1** adds an isolated dry-contact output (J4) for the stove's external thermostat input (TERM), so that Home
+Assistant can regulate on a room sensor placed away from the stove, without writing the set point to the stove
+EEPROM. See [Thermostat output (V1.1)](#thermostat-output-v11). V1 stays available on the `main` branch.
 
 ![NovaLink 3D view](docs/pcb_3d.png)
 
@@ -31,16 +35,18 @@ An optional VL53L0X time-of-flight sensor can be connected (for example to measu
 ## Features
 
 - **Isolation**: CA-IS3721HS digital isolator (Chipanalog), 3750 Vrms, 1 channel each way, fail-safe output high
-  (if the ESP is unpowered, the stove line is left idle). 4 mm copper-free barrier with a 1 mm milled slot under the
-  isolator. Separate grounds `GND_ESP` / `GND_STOVE`.
+  (if the ESP is unpowered, the stove line is left idle). 4 mm copper-free barrier with 1 mm milled slots under the
+  isolator and, in V1.1, under the thermostat relay (each slot runs 1.5 mm past both ends of its package to lengthen the creepage path). Separate grounds `GND_ESP` / `GND_STOVE`.
 - **Stove line (SER)**: open-drain style transmit through an SS14 Schottky diode (the board only pulls SER low),
   receive through a 1 kΩ resistor. No TVS on SER on purpose: the line is only pulled up by ~38 kΩ inside the stove,
   extra capacitance would slow the edges.
 - **ESP32-C3 SuperMini** (hand soldered), USB-C at the board edge.
 - **ToF sensor connector** (JST XH 5 pins) with 2.2 kΩ I²C pull-ups and 100 Ω series resistors on the cable lines.
-- **Extension header** (8 pins, 2.54 mm): GPIO0, GPIO1, GPIO3, I²C, 3V3, GND, 5V (USB).
+- **Extension header** (7 pins, 2.54 mm; V1: 8 pins with GPIO3): GPIO0, GPIO1, I²C, 3V3, GND, 5V (USB).
 - **Status LED** on GPIO10, test points for TX, RX, 5V, SER and GND.
-- 79 × 30 mm, 2 layers, all SMD parts in 0805 / SOIC / SMA (hand-solderable).
+- **Thermostat output (V1.1)**: Omron G3VM-61VY3 MOSFET relay (3.75 kVrms, 60 V, 0.7 A), normally open dry contact
+  on J4 for the stove TERM input, driven by GPIO3 (removed from J3).
+- 89 × 30 mm (V1: 79 × 30 mm), 2 layers, all SMD parts in 0805 / SOIC / SOP / SMA (hand-solderable).
 - 3D-printable enclosure with captive M3 nuts, magnets and a snap-fit lid.
 
 ## Repository layout
@@ -56,8 +62,8 @@ An optional VL53L0X time-of-flight sensor can be connected (for example to measu
 
 ## Schematic
 
-[docs/NovaLink_schematic.pdf](docs/NovaLink_schematic.pdf) — one A4 sheet, five blocks: ESP32-C3 SuperMini and LED,
-isolation and stove connector, test points and mounting holes, ToF sensor, extension header.
+[docs/NovaLink_schematic.pdf](docs/NovaLink_schematic.pdf) — one A4 sheet, six blocks: ESP32-C3 SuperMini and LED,
+isolation and stove connector, test points and mounting holes, ToF sensor, extension header, thermostat output.
 
 ### ESP32-C3 SuperMini pins
 
@@ -68,7 +74,8 @@ isolation and stove connector, test points and mounting holes, ToF sensor, exten
 | I²C SDA / SCL | GPIO6 / GPIO7 | shared between J2 and J3 |
 | Sensor XSHUT | GPIO4 | |
 | Status LED | GPIO10 | active high |
-| On J3 only | GPIO0, GPIO1, GPIO3 | |
+| Thermostat output (V1.1) | GPIO3 | high = contact closed (no longer on J3) |
+| On J3 only | GPIO0, GPIO1 | |
 | Unused | GPIO2, GPIO8, GPIO9, GPIO21 | strapping / boot pins |
 
 ### Connectors
@@ -77,7 +84,8 @@ isolation and stove connector, test points and mounting holes, ToF sensor, exten
 |---|---|---|
 | J1 (stove) | JST XH 3 pins, right angle | 1 = +5V, 2 = SER, 3 = GND (stove side, isolated) |
 | J2 (ToF sensor) | JST XH 5 pins, right angle | 1 = 3V3, 2 = GND, 3 = SDA, 4 = SCL, 5 = XSHUT |
-| J3 (extension) | 1×8 pin header 2.54 mm | IO0, IO1, SDA, IO3, SCL, 3V3, GND, 5V (USB, not isolated) |
+| J3 (extension) | 1×7 pin header 2.54 mm | IO0, IO1, SDA, SCL, 3V3, GND, 5V (USB, not isolated) |
+| J4 (stove TERM, V1.1) | JST XH 2 pins, right angle | 1, 2 = dry contact to the stove TERM input, no polarity (isolated) |
 
 ## Bill of materials
 
@@ -88,15 +96,50 @@ isolation and stove connector, test points and mounting holes, ToF sensor, exten
 | D1 | SS14 | SMA | C2480 |
 | J1 | JST S3B-XH-A | XH 3P right angle | C157928 |
 | J2 | JST S5B-XH-A | XH 5P right angle | C263757 |
-| J3 | Pin header 1×8 | 2.54 mm | C492407 |
+| J3 | Pin header 1×7 (XFCN PZ254V-11-07P) | 2.54 mm | C492406 |
+| J4 | JST S2B-XH-A | XH 2P right angle | C157931 |
 | LED1 | Red | 0805 | C84256 |
 | R1, R4 | 1 kΩ | 0805 | C17513 |
 | R2, R3 | 2.2 kΩ | 0805 | C17520 |
 | R5, R6, R7 | 100 Ω | 0805 | C17408 |
+| R8 | 220 Ω | 0805 | C17557 |
 | U2 | CA-IS3721HS | SOIC-8 | C428884 |
+| U3 | Omron G3VM-61VY3(TR) | SOP-4 2.54 mm | C2152318 |
 | U1 | ESP32-C3 SuperMini (U.FL version recommended) | module | — (hand soldered) |
 
+## Thermostat output (V1.1)
+
+Micronova boards have an external thermostat input (TERM, a normally open dry contact). On the boards documented by
+Micronova (I023, N100), the contact works as follows:
+
+| J4 contact | STAND-BY off (default) | STAND-BY on |
+|---|---|---|
+| Closed (GPIO3 high) | WORK at the set power | WORK |
+| Open (GPIO3 low, ESP off) | MODULATION (minimum power, flame on) | MODULATION, then shutdown after Pr44, restart when the contact closes |
+
+The stove still heats while its own room probe is below its set point (probe **or** contact). To let the contact
+alone decide, set the stove set point to 7 °C; a higher value (for example 15 °C) keeps the stove probe as a backup
+if Home Assistant or the ESP fails.
+
+> ⚠️ Not yet checked on the X100 EVO: test the behaviour by hand (remove the TERM bridge, open and close it) before
+> relying on it. Measure the TERM voltage (contact open) and current (contact closed) first; the relay is rated
+> 60 V / 0.7 A. Remove the factory bridge on TERM before wiring J4.
+
+ESPHome example:
+
+```yaml
+switch:
+  - platform: gpio
+    pin: GPIO3
+    id: term_demand
+    name: "Thermostat demand"
+    restore_mode: ALWAYS_OFF
+```
+
 ## Enclosure
+
+> ⚠️ The enclosure files are made for the 79 mm V1 board. V1.1 is 10 mm wider (stove side), needs one more
+> opening for J4, and J3 is one pin shorter (pin 1 moved 2.54 mm down): the enclosure is not updated yet.
 
 Ready-to-print files: `enclosure/NovaLink_enclosure_base.stl` and `enclosure/NovaLink_enclosure_lid.stl`;
 `enclosure/NovaLink_enclosure.step` to adapt it in any CAD tool.
