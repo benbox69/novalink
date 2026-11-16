@@ -138,17 +138,29 @@ switch:
 
 ## Enclosure
 
-> ⚠️ The enclosure files are made for the 79 mm V1 board. V1.1 is 10 mm wider (stove side), needs one more
-> opening for J4, and J3 is one pin shorter (pin 1 moved 2.54 mm down): the enclosure is not updated yet.
+![NovaLink enclosure](docs/enclosure.png)
 
-Ready-to-print files: `enclosure/NovaLink_enclosure_base.stl` and `enclosure/NovaLink_enclosure_lid.stl`;
-`enclosure/NovaLink_enclosure.step` to adapt it in any CAD tool.
+Ready-to-print files in `enclosure/`: `NovaLink_enclosure_base.stl`, `NovaLink_enclosure_lid.stl`,
+`NovaLink_enclosure_led_window.stl` and `NovaLink_enclosure_j3_cover.stl`. For a multi-colour printer:
+`NovaLink_enclosure_base_multicolor.3mf` (base + white connector names, also as
+`NovaLink_enclosure_base_labels.stl`) and `NovaLink_enclosure_lid_multicolor.3mf` (lid + clear LED window),
+one filament per body.
+`NovaLink_enclosure.step` to adapt the enclosure in any CAD tool. The enclosure was checked against the
+KiCad 3D model of the board (`docs/NovaLink.step`): no interference.
 
-- Outside 84 × 35 × 22 mm, openings for USB-C, J1, J2 and a slot above J3.
-- Board held by two M3 × 10 screws into captive M3 nuts under the base (no inserts).
+- Outside 94 × 35 × 22.5 mm, openings for USB-C (rounded, centred on the receptacle, 11.5 × 6.5 mm for the cable
+  overmold), J2 (sensor) and J1 + J4 (stove, TERM), slot above J3.
+- Small cover closing the J3 slot when the header is not used: flush in a recess of the lid, friction fit,
+  fingernail notch to remove it.
+- Board held by two M3 × 10 screws into M3 nuts caged inside the base, plus a support peg. Pause the print at Z = 3.0 mm (top of the hexagonal pockets), drop an M3 nut in each pocket, then resume: the nuts end up fully enclosed (closed 0.4 mm skin below, no hole through the underside). M3 × 10 is the longest screw that fits: 10.2 mm from the board top down to the skin.
 - 4 pockets for Ø10 × 3 mm magnets to stick the box to the back of the stove.
 - Snap-fit lid, removable with a flat screwdriver (notch at the front).
-- Print in **PETG or ASA**, not PLA (the back of a stove gets warm).
+- Connector names on the front wall, under the openings: 0.4 mm inlay in a second colour (or plain engraving
+  with a single-colour printer).
+- Lid: engraved name, vent slots, flexible reset key (round pad on a thin beam, pusher on the SuperMini RST
+  button, the one on the J3 side) and a transparent light pipe above the status LED, in an opaque sleeve.
+- Print the lid top face down, in **PETG or ASA**, not PLA (the back of a stove gets warm); LED window in clear PETG,
+  J3 cover cap face down.
 
 ## Firmware
 
