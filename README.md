@@ -40,7 +40,7 @@ EEPROM. See [Thermostat output (V1.1)](#thermostat-output-v11). V1 stays availab
 - **Stove line (SER)**: open-drain style transmit through an SS14 Schottky diode (the board only pulls SER low),
   receive through a 1 kΩ resistor. No TVS on SER on purpose: the line is only pulled up by ~38 kΩ inside the stove,
   extra capacitance would slow the edges.
-- **ESP32-C3 SuperMini** (hand soldered), USB-C at the board edge.
+- **ESP32-C3 SuperMini** (hand soldered), its edge flush with the board edge so the USB-C protrudes by 1.3 mm.
 - **ToF sensor connector** (JST XH 5 pins) with 2.2 kΩ I²C pull-ups and 100 Ω series resistors on the cable lines.
 - **Extension header** (7 pins, 2.54 mm; V1: 8 pins with GPIO3): GPIO0, GPIO1, I²C, 3V3, GND, 5V (USB).
 - **Status LED** on GPIO10, test points for TX, RX, 5V, SER and GND.
@@ -148,8 +148,8 @@ one filament per body.
 `NovaLink_enclosure.step` to adapt the enclosure in any CAD tool. The enclosure was checked against the
 KiCad 3D model of the board (`docs/NovaLink.step`): no interference.
 
-- Outside 94 × 35 × 22.5 mm, openings for USB-C (rounded, centred on the receptacle, 11.5 × 6.5 mm for the cable
-  overmold), J2 (sensor) and J1 + J4 (stove, TERM), slot above J3.
+- Outside 94 × 33.8 × 22.5 mm, openings for USB-C (tight rounded opening, the receptacle is flush with the 1.2 mm
+  front wall), J2 (sensor) and J1 + J4 (stove, TERM), slot above J3.
 - Small cover closing the J3 slot when the header is not used: flush in a recess of the lid, friction fit,
   fingernail notch to remove it.
 - Board held by two M3 × 10 screws into M3 nuts caged inside the base, plus a support peg. Pause the print at Z = 3.0 mm (top of the hexagonal pockets), drop an M3 nut in each pocket, then resume: the nuts end up fully enclosed (closed 0.4 mm skin below, no hole through the underside). M3 × 10 is the longest screw that fits: 10.2 mm from the board top down to the skin.
