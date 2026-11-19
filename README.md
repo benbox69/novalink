@@ -13,7 +13,7 @@ EEPROM. See [Thermostat output (V1.1)](#thermostat-output-v11). V1 stays availab
 
 ![NovaLink 3D view](docs/pcb_3d.png)
 
-> ⚠️ **Status: board not tested yet.** The first boards have not been built or connected to a stove. Both firmware
+> ⚠️ **Status: V1.1 boards in production, not tested yet.** Both firmware
 > versions run on a breadboard prototype connected to a Micronova X100 EVO (same protocol, same logic; only the pins
 > and the signal inversion differ). Use at your own risk.
 >
