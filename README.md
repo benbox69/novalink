@@ -9,8 +9,8 @@ An optional VL53L0X time-of-flight sensor can be connected (for example to measu
 
 ![NovaLink 3D view](docs/pcb_3d.png)
 
-> ℹ️ **NovaLink V1.1** (branch [`v1.1-term`](https://github.com/benbox69/novalink/tree/v1.1-term)) adds an isolated
-> thermostat output and is the version in production.
+> ℹ️ This is **NovaLink V1**, kept for reference. The current version is **V1.1** on the
+> [`main`](https://github.com/benbox69/novalink) branch: it adds an isolated thermostat output.
 
 > ⚠️ **Status: board not tested yet.** V1 boards have not been built. Both firmware
 > versions run on a breadboard prototype connected to a Micronova X100 EVO (same protocol, same logic; only the pins
