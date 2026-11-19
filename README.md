@@ -7,7 +7,7 @@ NovaLink plugs into the 3-pin service port of a Micronova stove board (designed 
 3.75 kV digital isolator. The stove side is powered by the stove itself; the ESP side is powered by USB-C.
 An optional VL53L0X time-of-flight sensor can be connected (for example to measure the pellet level).
 
-**V1.1** adds an isolated dry-contact output (J4) for the stove's external thermostat input (TERM), so that Home
+An isolated dry-contact output (J4) drives the stove's external thermostat input (TERM), so that Home
 Assistant can regulate on a room sensor placed away from the stove.
 
 ![NovaLink 3D view](docs/pcb_3d.png)
@@ -33,17 +33,17 @@ Assistant can regulate on a room sensor placed away from the stove.
 
 - **Isolation**: CA-IS3721HS digital isolator (Chipanalog), 3750 Vrms, 1 channel each way, fail-safe output high
   (if the ESP is unpowered, the stove line is left idle). 4 mm copper-free barrier with 1 mm milled slots under the
-  isolator and, in V1.1, under the thermostat relay (each slot runs 1.5 mm past both ends of its package to lengthen the creepage path). Separate grounds `GND_ESP` / `GND_STOVE`.
+  isolator and under the thermostat relay (each slot runs 1.5 mm past both ends of its package to lengthen the creepage path). Separate grounds `GND_ESP` / `GND_STOVE`.
 - **Stove line (SER)**: open-drain style transmit through an SS14 Schottky diode (the board only pulls SER low),
   receive through a 1 kΩ resistor. No TVS on SER on purpose: the line is only pulled up by ~38 kΩ inside the stove,
   extra capacitance would slow the edges.
 - **ESP32-C3 SuperMini** (hand soldered), its edge flush with the board edge so the USB-C protrudes by 1.3 mm.
 - **ToF sensor connector** (JST XH 5 pins) with 2.2 kΩ I²C pull-ups and 100 Ω series resistors on the cable lines.
-- **Extension header** (7 pins, 2.54 mm; V1: 8 pins with GPIO3): GPIO0, GPIO1, I²C, 3V3, GND, 5V (USB).
+- **Extension header** (7 pins, 2.54 mm): GPIO0, GPIO1, I²C, 3V3, GND, 5V (USB).
 - **Status LED** on GPIO10, test points for TX, RX, 5V, SER and GND.
-- **Thermostat output (V1.1)**: Omron G3VM-61VY3 MOSFET relay (3.75 kVrms, 60 V, 0.7 A), normally open dry contact
+- **Thermostat output**: Omron G3VM-61VY3 MOSFET relay (3.75 kVrms, 60 V, 0.7 A), normally open dry contact
   on J4 for the stove TERM input, driven by GPIO3 (removed from J3).
-- 89 × 30 mm (V1: 79 × 30 mm), 2 layers, all SMD parts in 0805 / SOIC / SOP / SMA (hand-solderable).
+- 89 × 30 mm, 2 layers, all SMD parts in 0805 / SOIC / SOP / SMA (hand-solderable).
 - 3D-printable enclosure with captive M3 nuts, magnets and a snap-fit lid.
 
 ## Repository layout
@@ -71,7 +71,7 @@ isolation and stove connector, test points and mounting holes, ToF sensor, exten
 | I²C SDA / SCL | GPIO6 / GPIO7 | shared between J2 and J3 |
 | Sensor XSHUT | GPIO4 | |
 | Status LED | GPIO10 | active high |
-| Thermostat output (V1.1) | GPIO3 | high = contact closed (no longer on J3) |
+| Thermostat output | GPIO3 | high = contact closed |
 | On J3 only | GPIO0, GPIO1 | |
 | Unused | GPIO2, GPIO8, GPIO9, GPIO21 | strapping / boot pins |
 
@@ -82,7 +82,7 @@ isolation and stove connector, test points and mounting holes, ToF sensor, exten
 | J1 (stove) | JST XH 3 pins, right angle | 1 = +5V, 2 = SER, 3 = GND (stove side, isolated) |
 | J2 (ToF sensor) | JST XH 5 pins, right angle | 1 = 3V3, 2 = GND, 3 = SDA, 4 = SCL, 5 = XSHUT |
 | J3 (extension) | 1×7 pin header 2.54 mm | IO0, IO1, SDA, SCL, 3V3, GND, 5V (USB, not isolated) |
-| J4 (stove TERM, V1.1) | JST XH 2 pins, right angle | 1, 2 = dry contact to the stove TERM input, no polarity (isolated) |
+| J4 (stove TERM) | JST XH 2 pins, right angle | 1, 2 = dry contact to the stove TERM input, no polarity (isolated) |
 
 ## Bill of materials
 
@@ -104,7 +104,7 @@ isolation and stove connector, test points and mounting holes, ToF sensor, exten
 | U3 | Omron G3VM-61VY3(TR) | SOP-4 2.54 mm | C2152318 |
 | U1 | ESP32-C3 SuperMini (U.FL version recommended) | module | — (hand soldered) |
 
-## Thermostat output (V1.1)
+## Thermostat output
 
 Micronova boards have an external thermostat input (TERM, a normally open dry contact). On the boards documented by
 Micronova (I023, N100), the contact works as follows:
