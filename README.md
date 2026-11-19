@@ -8,14 +8,11 @@ NovaLink plugs into the 3-pin service port of a Micronova stove board (designed 
 An optional VL53L0X time-of-flight sensor can be connected (for example to measure the pellet level).
 
 **V1.1** adds an isolated dry-contact output (J4) for the stove's external thermostat input (TERM), so that Home
-Assistant can regulate on a room sensor placed away from the stove, without writing the set point to the stove
-EEPROM. See [Thermostat output (V1.1)](#thermostat-output-v11). V1 stays available on the [`v1`](https://github.com/benbox69/novalink/tree/v1) branch.
+Assistant can regulate on a room sensor placed away from the stove.
 
 ![NovaLink 3D view](docs/pcb_3d.png)
 
-> ⚠️ **Status: V1.1 boards in production, not tested yet.** Both firmware
-> versions run on a breadboard prototype connected to a Micronova X100 EVO (same protocol, same logic; only the pins
-> and the signal inversion differ). Use at your own risk.
+> ⚠️ **Status: V1.1 boards in production, not tested yet.**
 >
 > This is a hobby project, not affiliated with or endorsed by Micronova. Opening a stove and connecting to its
 > controller is at your own risk and may void the warranty.
@@ -121,9 +118,7 @@ The stove still heats while its own room probe is below its set point (probe **o
 alone decide, set the stove set point to 7 °C; a higher value (for example 15 °C) keeps the stove probe as a backup
 if Home Assistant or the ESP fails.
 
-> ⚠️ Not yet checked on the X100 EVO: test the behaviour by hand (remove the TERM bridge, open and close it) before
-> relying on it. Measure the TERM voltage (contact open) and current (contact closed) first; the relay is rated
-> 60 V / 0.7 A. Remove the factory bridge on TERM before wiring J4.
+> ⚠️ Not yet checked on the X100 EVO.
 
 ESPHome example:
 
