@@ -9,13 +9,13 @@ build/
 production/backups/
 **/production/backups/
 enclosure/NovaLink_Enclosure/.vscode/
-# Modèle 3D de la SuperMini : non publié (CC0, à télécharger sur Printables, voir README)
+# SuperMini 3D model: not published (CC0, download it from Printables, see README)
 libs/3d/*.step
-# Fichiers générés contenant des chemins locaux
+# Generated files containing local paths
 docs/NovaLink.net
 /erc.rpt
 /drc.rpt
-# Outils ayant servi à la création (gardés en local, non publiés)
+# Tools used to create the design (kept locally, not published)
 scripts/
 production/designators.csv
 production/netlist.ipc
