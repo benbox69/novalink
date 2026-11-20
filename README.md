@@ -1,4 +1,4 @@
-# NovaLink V1
+# NovaLink (prototype)
 
 **Galvanically isolated ESP32-C3 interface for Micronova-controlled pellet stoves (NAVEL INSIDE port).**
 
@@ -9,10 +9,10 @@ An optional VL53L0X time-of-flight sensor can be connected (for example to measu
 
 ![NovaLink 3D view](docs/pcb_3d.png)
 
-> ℹ️ This is **NovaLink V1**, kept for reference. The current version is **V1.1** on the
-> [`main`](https://github.com/benbox69/novalink) branch: it adds an isolated thermostat output.
+> ℹ️ Early prototype design, never produced, kept for reference. The current design is on the
+> [`main`](https://github.com/benbox69/novalink) branch.
 
-> ⚠️ **Status: board not tested yet.** V1 boards have not been built. Both firmware
+> ⚠️ **Status: never built.** Both firmware
 > versions run on a breadboard prototype connected to a Micronova X100 EVO (same protocol, same logic; only the pins
 > and the signal inversion differ). Use at your own risk.
 >
